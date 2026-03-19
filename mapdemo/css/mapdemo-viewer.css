@@ -1,0 +1,233 @@
+﻿:root {
+  color-scheme: dark;
+  --bg: #101417;
+  --panel: rgba(21, 29, 34, 0.92);
+  --panel-border: rgba(255, 255, 255, 0.08);
+  --text: #f4ead8;
+  --muted: rgba(244, 234, 216, 0.66);
+  --accent: #f0ba62;
+  --accent-soft: rgba(240, 186, 98, 0.16);
+  --viewport-bg: radial-gradient(circle at top, rgba(52, 74, 79, 0.4), rgba(14, 19, 24, 0.95));
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Microsoft YaHei UI", "PingFang SC", sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(228, 152, 92, 0.22), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(58, 104, 109, 0.26), transparent 28%),
+    var(--bg);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.panel {
+  padding: 28px 24px;
+  border-right: 1px solid var(--panel-border);
+  background: linear-gradient(180deg, rgba(17, 24, 30, 0.96), rgba(12, 17, 21, 0.98));
+  overflow-y: auto;
+}
+
+.panel__eyebrow {
+  margin: 0;
+  color: var(--accent);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+.panel__title {
+  margin: 12px 0 10px;
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+.panel__desc {
+  margin: 0 0 22px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.control-group {
+  padding: 16px 16px 18px;
+  margin-bottom: 16px;
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+  background: var(--panel);
+  backdrop-filter: blur(12px);
+}
+
+.control-group__title {
+  margin: 0 0 14px;
+  font-size: 15px;
+  color: var(--accent);
+}
+
+.switch-row,
+.slider-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.switch-row:last-child,
+.slider-row:last-of-type {
+  margin-bottom: 8px;
+}
+
+input[type="range"] {
+  width: 100%;
+  margin-bottom: 14px;
+  accent-color: var(--accent);
+}
+
+.tips-list {
+  margin: 0 0 16px;
+  padding-left: 18px;
+  color: var(--muted);
+  line-height: 1.75;
+}
+
+.reset-button {
+  width: 100%;
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #22150d;
+  background: linear-gradient(135deg, #f1cc7b, #d6904d);
+  cursor: pointer;
+}
+
+.reset-button:hover {
+  filter: brightness(1.04);
+}
+
+.info-panel {
+  margin: 0;
+  min-height: 240px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #f8f2e7;
+}
+
+.viewer-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+}
+
+.viewer-shell__header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--panel-border);
+  background: rgba(9, 14, 18, 0.76);
+  backdrop-filter: blur(12px);
+}
+
+.viewer-shell__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.viewer-shell__status {
+  margin: 0;
+  color: var(--muted);
+}
+
+.viewer__viewport {
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  background: var(--viewport-bg);
+  cursor: grab;
+}
+
+.viewer__viewport--dragging {
+  cursor: grabbing;
+}
+
+.viewer__world {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.viewer__background-layer {
+  position: absolute;
+  pointer-events: none;
+}
+
+.viewer__overlay-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.viewer__background-layer img {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  user-select: none;
+  pointer-events: none;
+}
+
+.viewer__origin-marker {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  margin-top: -7px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.66);
+  pointer-events: none;
+}
+
+code {
+  padding: 0.15em 0.35em;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .panel {
+    border-right: 0;
+    border-bottom: 1px solid var(--panel-border);
+  }
+
+  .viewer__viewport {
+    min-height: 62vh;
+  }
+}

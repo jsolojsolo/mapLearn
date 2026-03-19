@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>无量山 H5 主场景复刻</title>
+  <link rel="stylesheet" href="./css/wuliangshan-h5.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hud">
+      <div class="hud__title">
+        <span class="hud__eyebrow">ARPG H5 Scene Study</span>
+        <h1>无量山主场景复刻</h1>
+      </div>
+      <div class="hud__actions">
+        <button id="toggleMapButton" class="hud__button" type="button">M 全景地图</button>
+      </div>
+      <div class="hud__status">
+        <span id="statusText">正在读取地图配置...</span>
+      </div>
+    </header>
+
+    <main class="scene-shell">
+      <div id="sceneViewport" class="scene-viewport">
+        <div id="worldLayer" class="world-layer">
+          <div id="backgroundLayer" class="background-layer"></div>
+          <canvas id="gridCanvas" class="grid-canvas"></canvas>
+          <canvas id="pathCanvas" class="path-canvas"></canvas>
+          <div id="playerMarker" class="player-marker" aria-label="玩家位置"></div>
+          <div id="destinationMarker" class="destination-marker destination-marker--hidden" aria-hidden="true"></div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="info-panel">
+      <div class="info-card">
+        <h2>操作说明</h2>
+        <p>单击场景任意可通行区域进行寻路。画面上的淡红色菱形边界就是逻辑网格，方便你对照地图与寻路数据。</p>
+      </div>
+
+      <div class="info-card">
+        <h2>速度控制</h2>
+        <label class="slider-field" for="speedInput">
+          <span>移动速度</span>
+          <input id="speedInput" class="slider-field__input" type="range" min="60" max="600" step="20" value="240">
+        </label>
+        <div class="slider-field__value">
+          <span id="speedValue">240 px/s</span>
+        </div>
+        <p>拖动滑块可以实时调整角色移动速度，方便观察“点击坐标 -> 格子坐标 -> 路径格序列”的全过程。</p>
+      </div>
+
+      <div class="info-card">
+        <h2>实时信息</h2>
+        <pre id="debugText" class="debug-text">初始化中...</pre>
+      </div>
+
+      <div class="info-card info-card--log">
+        <div class="info-card__header">
+          <h2>学习日志</h2>
+          <button id="clearLogButton" class="hud__button hud__button--small" type="button">清空日志</button>
+        </div>
+        <pre id="logText" class="log-text">等待场景初始化...</pre>
+      </div>
+    </aside>
+  </div>
+
+  <div id="mapOverlay" class="map-overlay map-overlay--hidden" aria-hidden="true">
+    <div class="map-overlay__backdrop"></div>
+    <div class="map-overlay__panel" role="dialog" aria-modal="true" aria-labelledby="mapOverlayTitle">
+      <div class="map-overlay__header">
+        <div>
+          <span class="map-overlay__eyebrow">Overview</span>
+          <h2 id="mapOverlayTitle">无量山全景地图</h2>
+        </div>
+        <button id="closeMapButton" class="hud__button" type="button">关闭</button>
+      </div>
+      <div id="miniMapViewport" class="map-overlay__viewport">
+        <img id="miniMapImage" class="map-overlay__image" src="./assets/map/101/small.jpg" alt="无量山小地图">
+        <canvas id="miniMapCanvas" class="map-overlay__canvas"></canvas>
+      </div>
+      <p class="map-overlay__tip">金色点表示当前角色位置，矩形框表示当前镜头范围。单击小地图可快速平移镜头。</p>
+    </div>
+  </div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>

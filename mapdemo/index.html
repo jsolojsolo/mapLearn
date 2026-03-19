@@ -1,0 +1,81 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MapDemo 45 度地图查看器</title>
+    <link rel="stylesheet" href="./css/mapdemo-viewer.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="panel">
+        <p class="panel__eyebrow">MapDemo Sandbox</p>
+        <h1 class="panel__title">45 度地图对照查看器</h1>
+        <p class="panel__desc">
+          当前页面会把 <code>map1.txt</code> 按无量山的同尺寸、同偏移、同格子参数绘制成菱形地图，
+          并把无量山底图叠在下方，方便直接观察偏移关系。
+        </p>
+
+        <section class="control-group">
+          <h2 class="control-group__title">图层控制</h2>
+          <label class="switch-row">
+            <input id="showBackgroundCheckbox" type="checkbox" checked />
+            <span>显示无量山底图</span>
+          </label>
+          <label class="switch-row">
+            <input id="showOverlayCheckbox" type="checkbox" checked />
+            <span>显示 mapdemo 覆盖层</span>
+          </label>
+        </section>
+
+        <section class="control-group">
+          <h2 class="control-group__title">透明度</h2>
+          <label class="slider-row" for="backgroundOpacityInput">
+            <span>底图透明度</span>
+            <strong id="backgroundOpacityValue">72%</strong>
+          </label>
+          <input id="backgroundOpacityInput" type="range" min="0" max="100" step="1" value="72" />
+
+          <label class="slider-row" for="overlayOpacityInput">
+            <span>覆盖层透明度</span>
+            <strong id="overlayOpacityValue">78%</strong>
+          </label>
+          <input id="overlayOpacityInput" type="range" min="0" max="100" step="1" value="78" />
+        </section>
+
+        <section class="control-group">
+          <h2 class="control-group__title">操作提示</h2>
+          <ul class="tips-list">
+            <li>按住 <code>Ctrl</code> + 滚轮：放大或缩小</li>
+            <li>按住鼠标左键拖拽：平移地图</li>
+            <li>白色小点：世界原点 <code>(0, 0)</code></li>
+            <li>红色：值 <code>1</code>，金色：值 <code>2</code></li>
+          </ul>
+          <button id="resetViewButton" class="reset-button" type="button">重置视图</button>
+        </section>
+
+        <section class="control-group">
+          <h2 class="control-group__title">参数信息</h2>
+          <pre id="infoPanel" class="info-panel">等待初始化...</pre>
+        </section>
+      </aside>
+
+      <main class="viewer-shell">
+        <header class="viewer-shell__header">
+          <span class="viewer-shell__badge">Offset Study</span>
+          <p id="appStatus" class="viewer-shell__status">正在初始化查看器...</p>
+        </header>
+
+        <section id="viewport" class="viewer__viewport">
+          <div id="world" class="viewer__world">
+            <div id="backgroundLayer" class="viewer__background-layer"></div>
+            <canvas id="overlayCanvas" class="viewer__overlay-canvas"></canvas>
+            <div id="originMarker" class="viewer__origin-marker" title="世界原点 (0, 0)"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./js/main.js"></script>
+  </body>
+</html>
