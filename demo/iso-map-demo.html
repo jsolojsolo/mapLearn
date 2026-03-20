@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>45度等角地图坐标 Demo</title>
+  <style>
+    :root {
+      --bg: #0c1720;
+      --panel: rgba(11, 23, 31, 0.9);
+      --panel-border: rgba(255, 255, 255, 0.1);
+      --text: #ecf4f9;
+      --muted: #94a7b7;
+      --accent: #ff625d;
+      --accent-soft: rgba(255, 98, 93, 0.14);
+      --grid-shadow: rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow: hidden;
+      font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(41, 112, 137, 0.25), transparent 34%),
+        radial-gradient(circle at bottom left, rgba(255, 98, 93, 0.18), transparent 28%),
+        linear-gradient(135deg, #09131a 0%, #12222e 45%, #0b1720 100%);
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      min-height: 100vh;
+    }
+
+    .panel {
+      position: relative;
+      z-index: 2;
+      padding: 22px 18px;
+      border-right: 1px solid var(--panel-border);
+      background: var(--panel);
+      backdrop-filter: blur(14px);
+      overflow-y: auto;
+    }
+
+    .panel h1 {
+      margin: 0 0 10px;
+      font-size: 24px;
+      line-height: 1.2;
+    }
+
+    .panel p,
+    .panel li,
+    .panel label,
+    .panel input,
+    .panel button,
+    .panel span {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .hint,
+    .status,
+    .tips {
+      color: var(--muted);
+    }
+
+    .card {
+      margin-top: 16px;
+      padding: 14px;
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      color: #fff5f3;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 9px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+      outline: none;
+    }
+
+    .field input:focus {
+      border-color: rgba(255, 98, 93, 0.48);
+      box-shadow: 0 0 0 3px rgba(255, 98, 93, 0.12);
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .button-row button {
+      flex: 1;
+      padding: 10px 12px;
+      border: 0;
+      border-radius: 999px;
+      cursor: pointer;
+      color: white;
+      background: linear-gradient(135deg, #ff7463 0%, #ff5d5d 100%);
+      box-shadow: 0 10px 24px rgba(255, 98, 93, 0.22);
+    }
+
+    .button-row button.secondary {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: none;
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 84px 1fr;
+      gap: 8px;
+      align-items: center;
+      margin-top: 8px;
+      word-break: break-all;
+    }
+
+    .kv strong {
+      color: #fff5f3;
+    }
+
+    .stage {
+      position: relative;
+      overflow: hidden;
+    }
+
+    #mapCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: grab;
+    }
+
+    #mapCanvas.dragging {
+      cursor: grabbing;
+    }
+
+    .loading {
+      position: absolute;
+      left: 24px;
+      bottom: 24px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.5);
+      color: #fff;
+      font-size: 13px;
+      pointer-events: none;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.24);
+    }
+
+    .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 6px var(--accent-soft);
+      vertical-align: middle;
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+      }
+
+      .panel {
+        border-right: 0;
+        border-bottom: 1px solid var(--panel-border);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="panel">
+      <h1>45度等角地图 Demo</h1>
+      <p class="hint">当前会把 <code>101</code> 目录下的切片自动拼成整图，再按 2:1 等角投影公式叠加红色格线与格子坐标。</p>
+
+      <section class="card">
+        <h2>交互说明</h2>
+        <div class="tips">鼠标拖拽平移，滚轮缩放。缩放到足够大时，会在每个格子中心显示 <code>(x, y)</code> 坐标。</div>
+        <div class="kv"><strong>悬停格子</strong><span id="hoverTile">尚未命中</span></div>
+        <div class="kv"><strong>地图像素</strong><span id="hoverPixel">-</span></div>
+        <div class="kv"><strong>当前缩放</strong><span id="zoomValue">-</span></div>
+      </section>
+
+      <section class="card">
+        <h2>投影参数</h2>
+        <div class="field">
+          <label for="originXInput">原点 X</label>
+          <input id="originXInput" type="number" step="1">
+        </div>
+        <div class="field">
+          <label for="originYInput">原点 Y</label>
+          <input id="originYInput" type="number" step="1">
+        </div>
+        <div class="field">
+          <label for="tileWidthInput">格子宽度</label>
+          <input id="tileWidthInput" type="number" step="1">
+        </div>
+        <div class="field">
+          <label for="tileHeightInput">格子高度</label>
+          <input id="tileHeightInput" type="number" step="1">
+        </div>
+        <div class="button-row">
+          <button id="fitButton" type="button">适配窗口</button>
+          <button id="resetButton" class="secondary" type="button">恢复默认</button>
+        </div>
+      </section>
+
+      <section class="card status">
+        <h2>资源状态</h2>
+        <div class="kv"><strong>切片数量</strong><span id="assetCount">196 张</span></div>
+        <div class="kv"><strong>拼图尺寸</strong><span id="mapSize">4200 x 4200</span></div>
+        <div class="kv"><strong>逻辑网格</strong><span id="gridSize">211 x 211</span></div>
+        <div class="kv"><strong>标签阈值</strong><span>缩放大于 1.1 后显示</span></div>
+      </section>
+    </aside>
+
+    <main class="stage">
+      <canvas id="mapCanvas"></canvas>
+      <div class="loading" id="loadingText"><span class="dot"></span>正在加载地图切片...</div>
+    </main>
+  </div>
+
+  <script>
+    /**
+     * MAP_CONFIG 保存本次 45 度地图 demo 的基础资源配置。
+     * 功能：集中声明切片拼图尺寸、逻辑格子尺寸和默认投影原点，避免坐标计算散落在各处。
+     * 参数：无。
+     * 返回值：
+     *   - Object: 返回一个冻结后的只读配置对象，内部字段表示资源目录、地图像素尺寸与格子参数。
+     * 注意事项：如果后续切换到其他地图目录，需要同步修改 folder、sliceCount、mapWidth、mapHeight 与网格参数。
+     */
+    const MAP_CONFIG = Object.freeze({
+      folder: "101",
+      sliceCount: 14,
+      sliceSize: 300,
+      mapWidth: 4200,
+      mapHeight: 4200,
+      gridCols: 211,
+      gridRows: 211,
+      defaultOriginX: 2100,
+      defaultOriginY: 140,
+      defaultTileWidth: 60,
+      defaultTileHeight: 30
+    });
+
+    /**
+     * VIEW_STATE 保存当前画布缩放、平移和交互状态。
+     * 功能：作为运行时单一状态源，供渲染、鼠标交互和面板同步读取。
+     * 参数：无。
+     * 返回值：
+     *   - Object: 返回可变的运行时状态对象，字段记录缩放值、偏移量、悬停格子与离屏大图。
+     * 注意事项：对该对象字段赋值后，需要调用 requestRender 触发重新绘制。
+     */
+    const VIEW_STATE = {
+      zoom: 1,
+      minZoom: 0.08,
+      maxZoom: 4,
+      dpr: window.devicePixelRatio || 1,
+      offsetX: 0,
+      offsetY: 0,
+      isDragging: false,
+      lastPointerX: 0,
+      lastPointerY: 0,
+      hoverTile: null,
+      hoverPixel: null,
+      composedMap: null,
+      renderQueued: false,
+      originX: MAP_CONFIG.defaultOriginX,
+      originY: MAP_CONFIG.defaultOriginY,
+      tileWidth: MAP_CONFIG.defaultTileWidth,
+      tileHeight: MAP_CONFIG.defaultTileHeight
+    };
+
+    const canvas = document.getElementById("mapCanvas");
+    const ctx = canvas.getContext("2d");
+    const loadingText = document.getElementById("loadingText");
+    const hoverTileText = document.getElementById("hoverTile");
+    const hoverPixelText = document.getElementById("hoverPixel");
+    const zoomValueText = document.getElementById("zoomValue");
+    const originXInput = document.getElementById("originXInput");
+    const originYInput = document.getElementById("originYInput");
+    const tileWidthInput = document.getElementById("tileWidthInput");
+    const tileHeightInput = document.getElementById("tileHeightInput");
+    const fitButton = document.getElementById("fitButton");
+    const resetButton = document.getElementById("resetButton");
+
+    /**
+     * syncInputs 把当前运行时参数回填到右侧面板。
+     * 功能：保证输入框展示的原点和格子尺寸与实际渲染使用的值一致。
+     * 参数：无。
+     * 返回值：
+     *   - void: 仅更新 DOM 输入框内容，不返回业务数据。
+     * 注意事项：该方法不会触发重绘，只负责单向同步界面显示。
+     */
+    function syncInputs() {
+      originXInput.value = String(VIEW_STATE.originX);
+      originYInput.value = String(VIEW_STATE.originY);
+      tileWidthInput.value = String(VIEW_STATE.tileWidth);
+      tileHeightInput.value = String(VIEW_STATE.tileHeight);
+    }
+
+    /**
+     * loadTileImage 加载单张地图切片图片。
+     * 功能：根据切片列号与行号拼出文件名，并返回可供 canvas 绘制的 Image 对象。
+     * 参数：
+     *   - sliceX: 切片横向编号，取值范围为 0 到 MAP_CONFIG.sliceCount - 1。
+     *   - sliceY: 切片纵向编号，取值范围为 0 到 MAP_CONFIG.sliceCount - 1。
+     * 返回值：
+     *   - Promise<HTMLImageElement>: 成功时返回已完成解码的图片对象；失败时抛出加载错误。
+     * 注意事项：文件名格式依赖当前目录资源命名为 x_y.jpg；若资源命名变化，这里需要同步调整。
+     */
+    function loadTileImage(sliceX, sliceY) {
+      return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error(`切片加载失败: ${sliceX}_${sliceY}.jpg`));
+        image.src = `${MAP_CONFIG.folder}/${sliceX}_${sliceY}.jpg`;
+      });
+    }
+
+    /**
+     * buildComposedMapCanvas 把所有切片绘制到一张离屏大图中。
+     * 功能：减少主渲染阶段的 drawImage 次数，使拖拽与缩放时只需要绘制一次整图背景。
+     * 参数：无。
+     * 返回值：
+     *   - Promise<HTMLCanvasElement>: 返回已经拼好完整地图的离屏 canvas。
+     * 注意事项：如果任意切片缺失，Promise 会被拒绝，界面会显示错误提示而不是继续渲染空白图。
+     */
+    async function buildComposedMapCanvas() {
+      const offscreen = document.createElement("canvas");
+      offscreen.width = MAP_CONFIG.mapWidth;
+      offscreen.height = MAP_CONFIG.mapHeight;
+      const offscreenCtx = offscreen.getContext("2d");
+      let loadedCount = 0;
+
+      const tasks = [];
+      for (let sliceY = 0; sliceY < MAP_CONFIG.sliceCount; sliceY += 1) {
+        for (let sliceX = 0; sliceX < MAP_CONFIG.sliceCount; sliceX += 1) {
+          tasks.push(
+            loadTileImage(sliceX, sliceY).then((image) => {
+              offscreenCtx.drawImage(
+                image,
+                sliceX * MAP_CONFIG.sliceSize,
+                sliceY * MAP_CONFIG.sliceSize,
+                MAP_CONFIG.sliceSize,
+                MAP_CONFIG.sliceSize
+              );
+              loadedCount += 1;
+              loadingText.innerHTML = `<span class="dot"></span>正在加载地图切片... ${loadedCount}/${MAP_CONFIG.sliceCount * MAP_CONFIG.sliceCount}`;
+            })
+          );
+        }
+      }
+
+      await Promise.all(tasks);
+      return offscreen;
+    }
+
+    /**
+     * tileToMapCenter 把逻辑格子坐标转换为地图像素中心点。
+     * 功能：实现 2:1 等角投影的核心公式，用于绘制格线、显示坐标与命中测试。
+     * 参数：
+     *   - tileX: 逻辑格子的 X 坐标，通常表示地图横向索引。
+     *   - tileY: 逻辑格子的 Y 坐标，通常表示地图纵向索引。
+     * 返回值：
+     *   - {{x:number,y:number}}: 返回该格子中心在拼图大图中的像素坐标。
+     * 注意事项：这里使用当前可调的 originX、originY、tileWidth、tileHeight；修改面板参数会直接影响结果。
+     */
+    function tileToMapCenter(tileX, tileY) {
+      return {
+        x: VIEW_STATE.originX + (tileX - tileY) * (VIEW_STATE.tileWidth / 2),
+        y: VIEW_STATE.originY + (tileX + tileY) * (VIEW_STATE.tileHeight / 2)
+      };
+    }
+
+    /**
+     * mapToViewport 把地图像素坐标转换到当前画布视口坐标。
+     * 功能：统一处理缩放和平移，使标签、悬停信息和鼠标命中都以同一套视图参数计算。
+     * 参数：
+     *   - mapX: 地图拼图坐标系中的 X 像素位置。
+     *   - mapY: 地图拼图坐标系中的 Y 像素位置。
+     * 返回值：
+     *   - {{x:number,y:number}}: 返回映射到 canvas 视口后的像素位置。
+     * 注意事项：此方法仅负责线性视图变换，不包含 45 度投影公式。
+     */
+    function mapToViewport(mapX, mapY) {
+      return {
+        x: mapX * VIEW_STATE.zoom + VIEW_STATE.offsetX,
+        y: mapY * VIEW_STATE.zoom + VIEW_STATE.offsetY
+      };
+    }
+
+    /**
+     * viewportToMap 把画布视口坐标还原为地图像素坐标。
+     * 功能：为滚轮缩放、鼠标悬停命中和拖拽后的定位提供逆向坐标换算。
+     * 参数：
+     *   - viewportX: 画布中的屏幕 X 像素位置。
+     *   - viewportY: 画布中的屏幕 Y 像素位置。
+     * 返回值：
+     *   - {{x:number,y:number}}: 返回对应的地图拼图坐标。
+     * 注意事项：当 zoom 很小时，浮点误差会略有放大，因此命中判断还会再做一次菱形包含校验。
+     */
+    function viewportToMap(viewportX, viewportY) {
+      return {
+        x: (viewportX - VIEW_STATE.offsetX) / VIEW_STATE.zoom,
+        y: (viewportY - VIEW_STATE.offsetY) / VIEW_STATE.zoom
+      };
+    }
+
+    /**
+     * getTileVertices 获取指定格子四个顶点的位置。
+     * 功能：为红色菱形描边与悬停高亮提供统一的几何顶点数据。
+     * 参数：
+     *   - tileX: 目标格子的 X 坐标。
+     *   - tileY: 目标格子的 Y 坐标。
+     * 返回值：
+     *   - Array<{x:number,y:number}>: 依次返回上、右、下、左四个顶点的地图像素坐标。
+     * 注意事项：返回坐标位于地图像素空间，真正绘制时会使用当前 canvas transform 进行缩放和平移。
+     */
+    function getTileVertices(tileX, tileY) {
+      const center = tileToMapCenter(tileX, tileY);
+      const halfWidth = VIEW_STATE.tileWidth / 2;
+      const halfHeight = VIEW_STATE.tileHeight / 2;
+      return [
+        { x: center.x, y: center.y - halfHeight },
+        { x: center.x + halfWidth, y: center.y },
+        { x: center.x, y: center.y + halfHeight },
+        { x: center.x - halfWidth, y: center.y }
+      ];
+    }
+
+    /**
+     * isPointInsideTile 判断某个地图像素点是否落在指定菱形格子内。
+     * 功能：利用菱形曼哈顿距离公式进行快速命中检测，避免复杂的多边形交点计算。
+     * 参数：
+     *   - mapX: 需要检测的地图像素 X 坐标。
+     *   - mapY: 需要检测的地图像素 Y 坐标。
+     *   - tileX: 候选格子的 X 坐标。
+     *   - tileY: 候选格子的 Y 坐标。
+     * 返回值：
+     *   - boolean: true 表示点位于菱形内部或边界上，false 表示在格子外。
+     * 注意事项：该方法假设格子轴向为标准 2:1 等角菱形；如果后续改成任意四边形，需要更换判定逻辑。
+     */
+    function isPointInsideTile(mapX, mapY, tileX, tileY) {
+      const center = tileToMapCenter(tileX, tileY);
+      const normalizedX = Math.abs(mapX - center.x) / (VIEW_STATE.tileWidth / 2);
+      const normalizedY = Math.abs(mapY - center.y) / (VIEW_STATE.tileHeight / 2);
+      return normalizedX + normalizedY <= 1;
+    }
+
+    /**
+     * mapPixelToTile 把地图像素坐标反算回逻辑格子坐标。
+     * 功能：实现从鼠标像素位置到格子索引的逆变换，并通过候选格校验提升边界命中准确度。
+     * 参数：
+     *   - mapX: 地图拼图中的像素 X 坐标。
+     *   - mapY: 地图拼图中的像素 Y 坐标。
+     * 返回值：
+     *   - {{x:number,y:number}|null}: 命中时返回逻辑格子坐标，未命中或越界时返回 null。
+     * 注意事项：由于 inverse 结果是浮点数，方法会检查邻近的 9 个候选格，避免四舍五入造成错格。
+     */
+    function mapPixelToTile(mapX, mapY) {
+      const dx = (mapX - VIEW_STATE.originX) / (VIEW_STATE.tileWidth / 2);
+      const dy = (mapY - VIEW_STATE.originY) / (VIEW_STATE.tileHeight / 2);
+      const approxTileX = (dx + dy) / 2;
+      const approxTileY = (dy - dx) / 2;
+      const baseX = Math.round(approxTileX);
+      const baseY = Math.round(approxTileY);
+
+      for (let offsetY = -1; offsetY <= 1; offsetY += 1) {
+        for (let offsetX = -1; offsetX <= 1; offsetX += 1) {
+          const tileX = baseX + offsetX;
+          const tileY = baseY + offsetY;
+          if (tileX < 0 || tileY < 0 || tileX >= MAP_CONFIG.gridCols || tileY >= MAP_CONFIG.gridRows) {
+            continue;
+          }
+          if (isPointInsideTile(mapX, mapY, tileX, tileY)) {
+            return { x: tileX, y: tileY };
+          }
+        }
+      }
+
+      return null;
+    }
+
+    /**
+     * requestRender 请求下一帧执行地图绘制。
+     * 功能：把多次状态更新合并到同一帧中，避免输入框联动和拖拽时重复重绘造成浪费。
+     * 参数：无。
+     * 返回值：
+     *   - void: 仅安排异步渲染，不直接返回绘图结果。
+     * 注意事项：如果当前已经有待执行的渲染任务，会直接复用，不会重复注册新的 requestAnimationFrame。
+     */
+    function requestRender() {
+      if (VIEW_STATE.renderQueued) {
+        return;
+      }
+      VIEW_STATE.renderQueued = true;
+      window.requestAnimationFrame(() => {
+        VIEW_STATE.renderQueued = false;
+        render();
+      });
+    }
+
+    /**
+     * resizeCanvas 让画布像素尺寸跟随容器和设备像素比同步。
+     * 功能：保证高 DPI 屏幕下地图与文字依旧清晰，同时为后续绘制建立正确的坐标基准。
+     * 参数：无。
+     * 返回值：
+     *   - void: 仅更新 canvas 的宽高属性并重置上下文变换。
+     * 注意事项：该方法执行后会重置 canvas 状态，因此需要在 render 中重新设置 transform、字体和样式。
+     */
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      VIEW_STATE.dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.round(rect.width * VIEW_STATE.dpr);
+      canvas.height = Math.round(rect.height * VIEW_STATE.dpr);
+      ctx.setTransform(VIEW_STATE.dpr, 0, 0, VIEW_STATE.dpr, 0, 0);
+      requestRender();
+    }
+
+    /**
+     * fitMapToViewport 让整张拼图尽量完整地显示在可见区域中。
+     * 功能：在首次加载和用户点击“适配窗口”按钮时，计算合适缩放值与居中偏移。
+     * 参数：无。
+     * 返回值：
+     *   - void: 更新运行时缩放和平移状态，并请求重绘。
+     * 注意事项：该方法按整张拼图外接矩形适配，因此不会自动放大到格线最清晰，只保证整图完整可见。
+     */
+    function fitMapToViewport() {
+      const rect = canvas.getBoundingClientRect();
+      const fitScaleX = rect.width / MAP_CONFIG.mapWidth;
+      const fitScaleY = rect.height / MAP_CONFIG.mapHeight;
+      VIEW_STATE.zoom = Math.min(fitScaleX, fitScaleY) * 0.96;
+      VIEW_STATE.offsetX = (rect.width - MAP_CONFIG.mapWidth * VIEW_STATE.zoom) / 2;
+      VIEW_STATE.offsetY = (rect.height - MAP_CONFIG.mapHeight * VIEW_STATE.zoom) / 2;
+      requestRender();
+    }
+
+    /**
+     * drawGrid 依据当前视口范围绘制可见红色格线。
+     * 功能：只遍历逻辑网格并剔除视口外的格子，以相对稳定的开销绘制菱形网格。
+     * 参数：无。
+     * 返回值：
+     *   - void: 在当前 canvas 上下文中写入红色格线路径。
+     * 注意事项：该方法假设调用前已经把上下文 transform 设置到地图坐标空间，线宽会按当前 zoom 自动修正。
+     */
+    function drawGrid() {
+      const visibleTopLeft = viewportToMap(0, 0);
+      const visibleBottomRight = viewportToMap(canvas.clientWidth, canvas.clientHeight);
+      const expandX = VIEW_STATE.tileWidth;
+      const expandY = VIEW_STATE.tileHeight;
+
+      ctx.beginPath();
+      for (let tileY = 0; tileY < MAP_CONFIG.gridRows; tileY += 1) {
+        for (let tileX = 0; tileX < MAP_CONFIG.gridCols; tileX += 1) {
+          const center = tileToMapCenter(tileX, tileY);
+          if (
+            center.x < visibleTopLeft.x - expandX ||
+            center.x > visibleBottomRight.x + expandX ||
+            center.y < visibleTopLeft.y - expandY ||
+            center.y > visibleBottomRight.y + expandY
+          ) {
+            continue;
+          }
+
+          const vertices = getTileVertices(tileX, tileY);
+          ctx.moveTo(vertices[0].x, vertices[0].y);
+          ctx.lineTo(vertices[1].x, vertices[1].y);
+          ctx.lineTo(vertices[2].x, vertices[2].y);
+          ctx.lineTo(vertices[3].x, vertices[3].y);
+          ctx.closePath();
+        }
+      }
+
+      ctx.strokeStyle = "rgba(255, 76, 76, 0.9)";
+      ctx.lineWidth = Math.max(1 / VIEW_STATE.zoom, 0.4);
+      ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+      ctx.shadowBlur = 0;
+      ctx.stroke();
+    }
+
+    /**
+     * drawLabels 在可见格子中心绘制逻辑坐标文本。
+     * 功能：当缩放达到可读阈值时，仅为当前窗口附近的格子输出中心坐标，避免全图文字过载。
+     * 参数：无。
+     * 返回值：
+     *   - void: 使用屏幕坐标系在画布上写入文字，不返回额外数据。
+     * 注意事项：标签字体固定为屏幕像素大小，因此缩放越大，可见区域内的可读性越高。
+     */
+    function drawLabels() {
+      if (VIEW_STATE.zoom < 1.1) {
+        return;
+      }
+
+      const visibleTopLeft = viewportToMap(0, 0);
+      const visibleBottomRight = viewportToMap(canvas.clientWidth, canvas.clientHeight);
+      const expandX = VIEW_STATE.tileWidth;
+      const expandY = VIEW_STATE.tileHeight;
+
+      ctx.save();
+      ctx.setTransform(VIEW_STATE.dpr, 0, 0, VIEW_STATE.dpr, 0, 0);
+      ctx.font = "12px 'Microsoft YaHei', sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      for (let tileY = 0; tileY < MAP_CONFIG.gridRows; tileY += 1) {
+        for (let tileX = 0; tileX < MAP_CONFIG.gridCols; tileX += 1) {
+          const center = tileToMapCenter(tileX, tileY);
+          if (
+            center.x < visibleTopLeft.x - expandX ||
+            center.x > visibleBottomRight.x + expandX ||
+            center.y < visibleTopLeft.y - expandY ||
+            center.y > visibleBottomRight.y + expandY
+          ) {
+            continue;
+          }
+
+          const viewportPoint = mapToViewport(center.x, center.y);
+          const text = `(${tileX}, ${tileY})`;
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.55)";
+          ctx.strokeText(text, viewportPoint.x, viewportPoint.y);
+          ctx.fillStyle = "#fff2da";
+          ctx.fillText(text, viewportPoint.x, viewportPoint.y);
+        }
+      }
+
+      ctx.restore();
+    }
+
+    /**
+     * drawHoveredTile 高亮当前鼠标所在的逻辑格子。
+     * 功能：让用户在查看网格与标签时，能更直观地确认当前命中的具体菱形范围。
+     * 参数：无。
+     * 返回值：
+     *   - void: 若当前没有命中格子则直接跳过，不返回业务数据。
+     * 注意事项：高亮层依赖 VIEW_STATE.hoverTile，因此需要配合鼠标移动事件实时更新。
+     */
+    function drawHoveredTile() {
+      if (!VIEW_STATE.hoverTile) {
+        return;
+      }
+
+      const vertices = getTileVertices(VIEW_STATE.hoverTile.x, VIEW_STATE.hoverTile.y);
+      ctx.beginPath();
+      ctx.moveTo(vertices[0].x, vertices[0].y);
+      ctx.lineTo(vertices[1].x, vertices[1].y);
+      ctx.lineTo(vertices[2].x, vertices[2].y);
+      ctx.lineTo(vertices[3].x, vertices[3].y);
+      ctx.closePath();
+      ctx.fillStyle = "rgba(255, 98, 93, 0.18)";
+      ctx.strokeStyle = "#fff3d1";
+      ctx.lineWidth = Math.max(2 / VIEW_STATE.zoom, 0.8);
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    /**
+     * updateInfoPanel 刷新右侧状态文本。
+     * 功能：把悬停格子、地图像素位置和当前缩放值以易读形式同步到面板中。
+     * 参数：无。
+     * 返回值：
+     *   - void: 仅写入 DOM 文本节点，不返回额外值。
+     * 注意事项：该方法不负责计算 hoverTile，只读取已经写入 VIEW_STATE 的结果。
+     */
+    function updateInfoPanel() {
+      hoverTileText.textContent = VIEW_STATE.hoverTile
+        ? `(${VIEW_STATE.hoverTile.x}, ${VIEW_STATE.hoverTile.y})`
+        : "尚未命中";
+      hoverPixelText.textContent = VIEW_STATE.hoverPixel
+        ? `${VIEW_STATE.hoverPixel.x.toFixed(1)}, ${VIEW_STATE.hoverPixel.y.toFixed(1)}`
+        : "-";
+      zoomValueText.textContent = `${(VIEW_STATE.zoom * 100).toFixed(1)}%`;
+    }
+
+    /**
+     * render 执行整张地图的当前帧绘制。
+     * 功能：按背景拼图、格线、高亮和文字标签的顺序完成一帧可视化输出。
+     * 参数：无。
+     * 返回值：
+     *   - void: 仅向 canvas 输出画面，不返回额外数据。
+     * 注意事项：如果离屏拼图尚未完成，方法会直接返回，避免在空数据上重复绘制。
+     */
+    function render() {
+      const rect = canvas.getBoundingClientRect();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      updateInfoPanel();
+
+      if (!VIEW_STATE.composedMap) {
+        return;
+      }
+
+      ctx.save();
+      ctx.setTransform(
+        VIEW_STATE.zoom * VIEW_STATE.dpr,
+        0,
+        0,
+        VIEW_STATE.zoom * VIEW_STATE.dpr,
+        VIEW_STATE.offsetX * VIEW_STATE.dpr,
+        VIEW_STATE.offsetY * VIEW_STATE.dpr
+      );
+      ctx.drawImage(VIEW_STATE.composedMap, 0, 0);
+      drawGrid();
+      drawHoveredTile();
+      ctx.restore();
+
+      drawLabels();
+    }
+
+    /**
+     * handlePointerMove 处理鼠标移动时的平移和悬停命中。
+     * 功能：在拖拽过程中更新视图偏移，在普通移动时更新当前命中的地图像素与格子坐标。
+     * 参数：
+     *   - event: 浏览器提供的鼠标移动事件，包含当前指针位置和按键状态。
+     * 返回值：
+     *   - void: 更新状态并请求重绘，不返回业务数据。
+     * 注意事项：拖拽和平常悬停共用一个事件入口，因此会优先处理正在拖拽的情况。
+     */
+    function handlePointerMove(event) {
+      const rect = canvas.getBoundingClientRect();
+      const viewportX = event.clientX - rect.left;
+      const viewportY = event.clientY - rect.top;
+
+      if (VIEW_STATE.isDragging) {
+        const deltaX = viewportX - VIEW_STATE.lastPointerX;
+        const deltaY = viewportY - VIEW_STATE.lastPointerY;
+        VIEW_STATE.offsetX += deltaX;
+        VIEW_STATE.offsetY += deltaY;
+        VIEW_STATE.lastPointerX = viewportX;
+        VIEW_STATE.lastPointerY = viewportY;
+      }
+
+      const mapPoint = viewportToMap(viewportX, viewportY);
+      VIEW_STATE.hoverPixel = mapPoint;
+      VIEW_STATE.hoverTile = mapPixelToTile(mapPoint.x, mapPoint.y);
+      requestRender();
+    }
+
+    /**
+     * applyInputValues 把右侧面板输入值写回运行时状态。
+     * 功能：允许用户实时微调等角投影原点与格子宽高，观察格线和底图的贴合情况。
+     * 参数：无。
+     * 返回值：
+     *   - void: 更新状态并请求重绘，不返回额外业务数据。
+     * 注意事项：若输入值为空或不是数字，将忽略该次写入，保留之前的有效配置。
+     */
+    function applyInputValues() {
+      const nextOriginX = Number(originXInput.value);
+      const nextOriginY = Number(originYInput.value);
+      const nextTileWidth = Number(tileWidthInput.value);
+      const nextTileHeight = Number(tileHeightInput.value);
+
+      if (!Number.isNaN(nextOriginX)) {
+        VIEW_STATE.originX = nextOriginX;
+      }
+      if (!Number.isNaN(nextOriginY)) {
+        VIEW_STATE.originY = nextOriginY;
+      }
+      if (!Number.isNaN(nextTileWidth) && nextTileWidth > 0) {
+        VIEW_STATE.tileWidth = nextTileWidth;
+      }
+      if (!Number.isNaN(nextTileHeight) && nextTileHeight > 0) {
+        VIEW_STATE.tileHeight = nextTileHeight;
+      }
+
+      requestRender();
+    }
+
+    /**
+     * bindEvents 绑定画布与面板的交互事件。
+     * 功能：统一注册拖拽、缩放、参数输入、重置与窗口变化等事件监听。
+     * 参数：无。
+     * 返回值：
+     *   - void: 完成事件绑定，不返回业务数据。
+     * 注意事项：滚轮缩放会以当前鼠标所在位置为锚点，因此体验上更接近地图编辑器。
+     */
+    function bindEvents() {
+      canvas.addEventListener("mousedown", (event) => {
+        const rect = canvas.getBoundingClientRect();
+        VIEW_STATE.isDragging = true;
+        VIEW_STATE.lastPointerX = event.clientX - rect.left;
+        VIEW_STATE.lastPointerY = event.clientY - rect.top;
+        canvas.classList.add("dragging");
+      });
+
+      window.addEventListener("mouseup", () => {
+        VIEW_STATE.isDragging = false;
+        canvas.classList.remove("dragging");
+      });
+
+      canvas.addEventListener("mousemove", handlePointerMove);
+
+      canvas.addEventListener("mouseleave", () => {
+        if (!VIEW_STATE.isDragging) {
+          VIEW_STATE.hoverTile = null;
+          VIEW_STATE.hoverPixel = null;
+          requestRender();
+        }
+      });
+
+      canvas.addEventListener(
+        "wheel",
+        (event) => {
+          event.preventDefault();
+          const rect = canvas.getBoundingClientRect();
+          const pointerX = event.clientX - rect.left;
+          const pointerY = event.clientY - rect.top;
+          const beforeZoomMapPoint = viewportToMap(pointerX, pointerY);
+          const zoomFactor = event.deltaY < 0 ? 1.12 : 0.9;
+          const nextZoom = Math.min(VIEW_STATE.maxZoom, Math.max(VIEW_STATE.minZoom, VIEW_STATE.zoom * zoomFactor));
+
+          VIEW_STATE.zoom = nextZoom;
+          VIEW_STATE.offsetX = pointerX - beforeZoomMapPoint.x * VIEW_STATE.zoom;
+          VIEW_STATE.offsetY = pointerY - beforeZoomMapPoint.y * VIEW_STATE.zoom;
+          requestRender();
+        },
+        { passive: false }
+      );
+
+      [originXInput, originYInput, tileWidthInput, tileHeightInput].forEach((input) => {
+        input.addEventListener("input", applyInputValues);
+      });
+
+      fitButton.addEventListener("click", fitMapToViewport);
+      resetButton.addEventListener("click", () => {
+        VIEW_STATE.originX = MAP_CONFIG.defaultOriginX;
+        VIEW_STATE.originY = MAP_CONFIG.defaultOriginY;
+        VIEW_STATE.tileWidth = MAP_CONFIG.defaultTileWidth;
+        VIEW_STATE.tileHeight = MAP_CONFIG.defaultTileHeight;
+        syncInputs();
+        fitMapToViewport();
+      });
+
+      window.addEventListener("resize", resizeCanvas);
+    }
+
+    /**
+     * bootstrap 初始化整个 demo。
+     * 功能：加载切片资源、设置初始画布尺寸、执行首帧适配并在失败时提示错误信息。
+     * 参数：无。
+     * 返回值：
+     *   - Promise<void>: 异步初始化完成后返回 resolved，失败时会在控制台与界面同时给出提示。
+     * 注意事项：如果浏览器禁止 file 协议读取本地图片，可改用本地静态服务器访问该 HTML 文件。
+     */
+    async function bootstrap() {
+      syncInputs();
+      bindEvents();
+      resizeCanvas();
+
+      try {
+        VIEW_STATE.composedMap = await buildComposedMapCanvas();
+        loadingText.innerHTML = "<span class='dot'></span>切片加载完成，可拖拽缩放查看坐标";
+        fitMapToViewport();
+      } catch (error) {
+        console.error(error);
+        loadingText.textContent = `地图加载失败：${error.message}`;
+      }
+    }
+
+    bootstrap();
+  </script>
+</body>
+</html>
