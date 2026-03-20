@@ -32,6 +32,35 @@ export class IsoMath {
   }
 
   /**
+   * stageToTile 把世界像素坐标反推回逻辑格坐标。
+   * 功能：根据菱形投影的逆公式，把鼠标所在的世界点还原成“落在第几个格子附近”的原始逻辑坐标。
+   * 参数：
+   * - stageX：世界坐标系中的 X，通常来自鼠标点减去视图平移和画布偏移后的结果。
+   * - stageY：世界坐标系中的 Y。
+   * - floor：Floor 配置对象，必须包含 `offsetX`、`offsetY`、`halfWidth`、`halfHeight`。
+   * 返回值：
+   * - `{ tileX, tileY }`：反推得到的逻辑格坐标。这里返回的是浮点数原始结果，不会主动四舍五入。
+   * 注意事项：由于鼠标可能落在格子边缘或菱形外侧，调用方通常还需要再做“邻近格筛选”或边界裁剪。
+   */
+  static stageToTile(stageX, stageY, floor) {
+    // 先把世界 X 按半格宽还原成“横向合成量”。
+    const normalizedX = stageX / floor.halfWidth;
+    // 再把世界 Y 按半格高还原成“纵向差值量”。
+    const normalizedY = stageY / floor.halfHeight;
+    // 两者相加后再除以 2，就能得到偏移后的逻辑 X。
+    const offX = (normalizedX + normalizedY) / 2;
+    // 两者相减后再除以 2，就能得到偏移后的逻辑 Y。
+    const offY = (normalizedX - normalizedY) / 2;
+
+    return {
+      // 把 Floor 的逻辑偏移量重新加回来，得到完整逻辑格 X。
+      tileX: offX + floor.offsetX,
+      // 同理得到完整逻辑格 Y。
+      tileY: offY + floor.offsetY
+    };
+  }
+
+  /**
    * traceDiamondPath 在 Canvas 上描出一个格子的菱形路径。
    * 功能：把某个格子中心点转换成四个顶点，供 `fill()` 和 `stroke()` 复用。
    * 参数：

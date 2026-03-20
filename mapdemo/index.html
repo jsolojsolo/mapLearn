@@ -48,10 +48,17 @@
           <ul class="tips-list">
             <li>按住 <code>Ctrl</code> + 滚轮：放大或缩小</li>
             <li>按住鼠标左键拖拽：平移地图</li>
+            <li>放大到足够近时：自动显示可见格子的坐标</li>
+            <li>鼠标悬停格子：高亮选中并显示格中心坐标</li>
             <li>白色小点：世界原点 <code>(0, 0)</code></li>
             <li>红色：值 <code>1</code>，金色：值 <code>2</code></li>
           </ul>
           <button id="resetViewButton" class="reset-button" type="button">重置视图</button>
+        </section>
+
+        <section class="control-group">
+          <h2 class="control-group__title">悬停格信息</h2>
+          <pre id="hoverInfoPanel" class="info-panel info-panel--compact">把鼠标移动到格子上后，这里会显示逻辑格坐标、格值、中心世界坐标和中心屏幕坐标。</pre>
         </section>
 
         <section class="control-group">
@@ -70,6 +77,7 @@
           <div id="world" class="viewer__world">
             <div id="backgroundLayer" class="viewer__background-layer"></div>
             <canvas id="overlayCanvas" class="viewer__overlay-canvas"></canvas>
+            <canvas id="interactionCanvas" class="viewer__interaction-canvas"></canvas>
             <div id="originMarker" class="viewer__origin-marker" title="世界原点 (0, 0)"></div>
           </div>
         </section>

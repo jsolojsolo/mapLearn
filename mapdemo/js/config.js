@@ -134,6 +134,105 @@ export const BACKGROUND_BOUNDS_STROKE_STYLE = "rgba(102, 225, 255, 0.88)";
 export const GRID_BOUNDS_STROKE_STYLE = "rgba(162, 255, 132, 0.84)";
 
 /**
+ * HOVER_TILE_FILL_STYLE 表示当前悬停格子的填充颜色。
+ * 功能：在鼠标移动到某个格子上时，用比普通网格更醒目的半透明颜色标出当前选中格。
+ * 参数：无。
+ * 返回值：CSS 颜色字符串。
+ * 注意事项：这里刻意保留一定透明度，避免遮住底图细节和格子坐标文字。
+ */
+export const HOVER_TILE_FILL_STYLE = "rgba(113, 210, 255, 0.26)";
+
+/**
+ * HOVER_TILE_STROKE_STYLE 表示当前悬停格子的描边颜色。
+ * 功能：让选中格子边界在缩放后依然明显，方便观察当前命中的逻辑格。
+ * 参数：无。
+ * 返回值：CSS 颜色字符串。
+ * 注意事项：这个颜色会压在普通网格上层，所以透明度不宜太低。
+ */
+export const HOVER_TILE_STROKE_STYLE = "rgba(146, 232, 255, 0.96)";
+
+/**
+ * HOVER_CENTER_FILL_STYLE 表示悬停格中心点的填充颜色。
+ * 功能：把当前格子的中心锚点显式画出来，便于你对照“格子中心”和底图的相对位置。
+ * 参数：无。
+ * 返回值：CSS 颜色字符串。
+ * 注意事项：中心点用于观察坐标，不参与任何逻辑运算。
+ */
+export const HOVER_CENTER_FILL_STYLE = "rgba(255, 246, 214, 0.96)";
+
+/**
+ * HOVER_CENTER_RADIUS 表示悬停格中心点圆点半径。
+ * 功能：控制交互层里中心点的视觉尺寸。
+ * 参数：无。
+ * 返回值：数字，单位像素。
+ * 注意事项：这是世界画布上的尺寸，最终还会随着视图缩放一起放大或缩小。
+ */
+export const HOVER_CENTER_RADIUS = 4;
+
+/**
+ * TILE_LABEL_MIN_SCALE 表示开始显示格子坐标文字的最小缩放倍数。
+ * 功能：只有当用户放大到足够看清文字时，才在可见格子上绘制坐标标签，避免缩小时整张图变成文字噪声。
+ * 参数：无。
+ * 返回值：数字倍率。
+ * 注意事项：这里判断的是当前世界层缩放倍数，不是浏览器页面缩放倍数。
+ */
+export const TILE_LABEL_MIN_SCALE = 1.35;
+
+/**
+ * TILE_LABEL_FONT 表示普通格子坐标文字的字体设置。
+ * 功能：统一控制放大后显示的坐标标签字体和字号。
+ * 参数：无。
+ * 返回值：Canvas font 字符串。
+ * 注意事项：字号是按未缩放画布定义的，最终显示效果还会叠加当前视图缩放。
+ */
+export const TILE_LABEL_FONT = "11px 'Microsoft YaHei UI', sans-serif";
+
+/**
+ * TILE_LABEL_FILL_STYLE 表示普通格子坐标文字的填充颜色。
+ * 功能：让坐标文字在浅色底图和深色背景上都保持基本可读。
+ * 参数：无。
+ * 返回值：CSS 颜色字符串。
+ * 注意事项：该颜色配合描边一起使用，可减少背景干扰。
+ */
+export const TILE_LABEL_FILL_STYLE = "rgba(244, 244, 236, 0.95)";
+
+/**
+ * TILE_LABEL_STROKE_STYLE 表示普通格子坐标文字的描边颜色。
+ * 功能：给文字套一层深色描边，降低它在复杂底图上的糊边问题。
+ * 参数：无。
+ * 返回值：CSS 颜色字符串。
+ * 注意事项：这不是格子边框颜色，只用于文字描边。
+ */
+export const TILE_LABEL_STROKE_STYLE = "rgba(7, 12, 17, 0.88)";
+
+/**
+ * HOVER_LABEL_FONT 表示悬停格强调文字的字体设置。
+ * 功能：让当前选中格的坐标标签比普通格子更醒目。
+ * 参数：无。
+ * 返回值：Canvas font 字符串。
+ * 注意事项：该字体只在悬停格附近使用。
+ */
+export const HOVER_LABEL_FONT = "bold 13px 'Microsoft YaHei UI', sans-serif";
+
+/**
+ * HOVER_LABEL_FILL_STYLE 表示悬停格标签文字填充颜色。
+ * 功能：高亮当前选中格的坐标信息。
+ * 参数：无。
+ * 返回值：CSS 颜色字符串。
+ * 注意事项：颜色选择偏暖色，和蓝色悬停边框形成对比。
+ */
+export const HOVER_LABEL_FILL_STYLE = "rgba(255, 228, 151, 0.98)";
+
+/**
+ * HOVER_LABEL_STROKE_STYLE 表示悬停格标签文字描边颜色。
+ * 功能：确保当前选中格标签在任何底色上都能被看清。
+ * 参数：无。
+ * 返回值：CSS 颜色字符串。
+ * 注意事项：无特殊注意事项。
+ */
+export const HOVER_LABEL_STROKE_STYLE = "rgba(23, 19, 12, 0.96)";
+
+/**
  * DEFAULT_ZOOM_PADDING 表示重置视图时给整张地图预留的边距比例。
  * 功能：避免刚进入页面时内容贴满容器边缘，看起来太挤。
  * 参数：无。
