@@ -212,12 +212,12 @@
       <section class="card">
         <h2>投影参数</h2>
         <div class="field">
-          <label for="originXInput">原点 X</label>
-          <input id="originXInput" type="number" step="1">
+          <label for="offsetXInput">沿X轴偏移（格）</label>
+          <input id="offsetXInput" type="number" step="1">
         </div>
         <div class="field">
-          <label for="originYInput">原点 Y</label>
-          <input id="originYInput" type="number" step="1">
+          <label for="offsetYInput">沿Y轴偏移（格）</label>
+          <input id="offsetYInput" type="number" step="1">
         </div>
         <div class="field">
           <label for="tileWidthInput">格子宽度</label>
@@ -251,11 +251,12 @@
   <script>
     /**
      * MAP_CONFIG 保存本次 45 度地图 demo 的基础资源配置。
-     * 功能：集中声明切片拼图尺寸、逻辑格子尺寸和默认投影原点，避免坐标计算散落在各处。
+     * 功能：集中声明切片拼图尺寸、逻辑格子尺寸和默认网格偏移，避免坐标计算散落在各处。
      * 参数：无。
      * 返回值：
      *   - Object: 返回一个冻结后的只读配置对象，内部字段表示资源目录、地图像素尺寸与格子参数。
      * 注意事项：如果后续切换到其他地图目录，需要同步修改 folder、sliceCount、mapWidth、mapHeight 与网格参数。
+     *           当 offsetX 和 offsetY 都为 0 时，格子(0,0)的中心位于地图像素坐标(0,0)。
      */
     const MAP_CONFIG = Object.freeze({
       folder: "101",
@@ -265,8 +266,8 @@
       mapHeight: 4200,
       gridCols: 211,
       gridRows: 211,
-      defaultOriginX: 2100,
-      defaultOriginY: 140,
+      defaultOffsetX: 0,
+      defaultOffsetY: 0,
       defaultTileWidth: 60,
       defaultTileHeight: 30
     });
@@ -293,8 +294,8 @@
       hoverPixel: null,
       composedMap: null,
       renderQueued: false,
-      originX: MAP_CONFIG.defaultOriginX,
-      originY: MAP_CONFIG.defaultOriginY,
+      offsetXGrid: MAP_CONFIG.defaultOffsetX,
+      offsetYGrid: MAP_CONFIG.defaultOffsetY,
       tileWidth: MAP_CONFIG.defaultTileWidth,
       tileHeight: MAP_CONFIG.defaultTileHeight
     };
@@ -305,8 +306,8 @@
     const hoverTileText = document.getElementById("hoverTile");
     const hoverPixelText = document.getElementById("hoverPixel");
     const zoomValueText = document.getElementById("zoomValue");
-    const originXInput = document.getElementById("originXInput");
-    const originYInput = document.getElementById("originYInput");
+    const offsetXInput = document.getElementById("offsetXInput");
+    const offsetYInput = document.getElementById("offsetYInput");
     const tileWidthInput = document.getElementById("tileWidthInput");
     const tileHeightInput = document.getElementById("tileHeightInput");
     const fitButton = document.getElementById("fitButton");
@@ -314,15 +315,15 @@
 
     /**
      * syncInputs 把当前运行时参数回填到右侧面板。
-     * 功能：保证输入框展示的原点和格子尺寸与实际渲染使用的值一致。
+     * 功能：保证输入框展示的网格偏移和格子尺寸与实际渲染使用的值一致。
      * 参数：无。
      * 返回值：
      *   - void: 仅更新 DOM 输入框内容，不返回业务数据。
      * 注意事项：该方法不会触发重绘，只负责单向同步界面显示。
      */
     function syncInputs() {
-      originXInput.value = String(VIEW_STATE.originX);
-      originYInput.value = String(VIEW_STATE.originY);
+      offsetXInput.value = String(VIEW_STATE.offsetXGrid);
+      offsetYInput.value = String(VIEW_STATE.offsetYGrid);
       tileWidthInput.value = String(VIEW_STATE.tileWidth);
       tileHeightInput.value = String(VIEW_STATE.tileHeight);
     }
@@ -388,16 +389,21 @@
      * tileToMapCenter 把逻辑格子坐标转换为地图像素中心点。
      * 功能：实现 2:1 等角投影的核心公式，用于绘制格线、显示坐标与命中测试。
      * 参数：
-     *   - tileX: 逻辑格子的 X 坐标，通常表示地图横向索引。
-     *   - tileY: 逻辑格子的 Y 坐标，通常表示地图纵向索引。
+     *   - tileX: 逻辑格子的 X 坐标，东南方向增长。
+     *   - tileY: 逻辑格子的 Y 坐标，东北方向增长。
      * 返回值：
-     *   - {{x:number,y:number}}: 返回该格子中心在拼图大图中的像素坐标。
-     * 注意事项：这里使用当前可调的 originX、originY、tileWidth、tileHeight；修改面板参数会直接影响结果。
+     *   - {{x:number,y:number}}: 返回该格子中心在拼图大图中的像素坐标（地图坐标系：向右x增长，向下y增长）。
+     * 注意事项：这里使用当前可调的 offsetXGrid、offsetYGrid、tileWidth、tileHeight；修改面板参数会直接影响结果。
      */
     function tileToMapCenter(tileX, tileY) {
+      // 当偏移为0时，格子(0,0)的中心在地图像素(0,0)
+      // 加上偏移后，相当于整个网格沿着网格轴向平移
+      const actualTileX = tileX - VIEW_STATE.offsetXGrid;
+      const actualTileY = tileY - VIEW_STATE.offsetYGrid;
+      
       return {
-        x: VIEW_STATE.originX + (tileX - tileY) * (VIEW_STATE.tileWidth / 2),
-        y: VIEW_STATE.originY + (tileX + tileY) * (VIEW_STATE.tileHeight / 2)
+        x: (actualTileX + actualTileY) * (VIEW_STATE.tileWidth / 2),
+        y: (actualTileX - actualTileY) * (VIEW_STATE.tileHeight / 2)
       };
     }
 
@@ -480,17 +486,23 @@
      * mapPixelToTile 把地图像素坐标反算回逻辑格子坐标。
      * 功能：实现从鼠标像素位置到格子索引的逆变换，并通过候选格校验提升边界命中准确度。
      * 参数：
-     *   - mapX: 地图拼图中的像素 X 坐标。
-     *   - mapY: 地图拼图中的像素 Y 坐标。
+     *   - mapX: 地图拼图中的像素 X 坐标（地图坐标系：向右x增长，向下y增长）。
+     *   - mapY: 地图拼图中的像素 Y 坐标（地图坐标系：向右x增长，向下y增长）。
      * 返回值：
-     *   - {{x:number,y:number}|null}: 命中时返回逻辑格子坐标，未命中或越界时返回 null。
+     *   - {{x:number,y:number}|null}: 命中时返回逻辑格子坐标（x为东南方向，y为东北方向），未命中或越界时返回 null。
      * 注意事项：由于 inverse 结果是浮点数，方法会检查邻近的 9 个候选格，避免四舍五入造成错格。
      */
     function mapPixelToTile(mapX, mapY) {
-      const dx = (mapX - VIEW_STATE.originX) / (VIEW_STATE.tileWidth / 2);
-      const dy = (mapY - VIEW_STATE.originY) / (VIEW_STATE.tileHeight / 2);
-      const approxTileX = (dx + dy) / 2;
-      const approxTileY = (dy - dx) / 2;
+      // 逆向投影公式：从地图像素坐标反算到格子坐标
+      const dx = mapX / (VIEW_STATE.tileWidth / 2);
+      const dy = mapY / (VIEW_STATE.tileHeight / 2);
+      const approxActualTileX = (dx + dy) / 2;
+      const approxActualTileY = (dx - dy) / 2;
+      
+      // 加上偏移得到逻辑格子坐标
+      const approxTileX = approxActualTileX + VIEW_STATE.offsetXGrid;
+      const approxTileY = approxActualTileY + VIEW_STATE.offsetYGrid;
+      
       const baseX = Math.round(approxTileX);
       const baseY = Math.round(approxTileY);
 
@@ -767,23 +779,23 @@
 
     /**
      * applyInputValues 把右侧面板输入值写回运行时状态。
-     * 功能：允许用户实时微调等角投影原点与格子宽高，观察格线和底图的贴合情况。
+     * 功能：允许用户实时微调网格偏移与格子宽高，观察格线和底图的贴合情况。
      * 参数：无。
      * 返回值：
      *   - void: 更新状态并请求重绘，不返回额外业务数据。
      * 注意事项：若输入值为空或不是数字，将忽略该次写入，保留之前的有效配置。
      */
     function applyInputValues() {
-      const nextOriginX = Number(originXInput.value);
-      const nextOriginY = Number(originYInput.value);
+      const nextOffsetX = Number(offsetXInput.value);
+      const nextOffsetY = Number(offsetYInput.value);
       const nextTileWidth = Number(tileWidthInput.value);
       const nextTileHeight = Number(tileHeightInput.value);
 
-      if (!Number.isNaN(nextOriginX)) {
-        VIEW_STATE.originX = nextOriginX;
+      if (!Number.isNaN(nextOffsetX)) {
+        VIEW_STATE.offsetXGrid = nextOffsetX;
       }
-      if (!Number.isNaN(nextOriginY)) {
-        VIEW_STATE.originY = nextOriginY;
+      if (!Number.isNaN(nextOffsetY)) {
+        VIEW_STATE.offsetYGrid = nextOffsetY;
       }
       if (!Number.isNaN(nextTileWidth) && nextTileWidth > 0) {
         VIEW_STATE.tileWidth = nextTileWidth;
@@ -846,14 +858,14 @@
         { passive: false }
       );
 
-      [originXInput, originYInput, tileWidthInput, tileHeightInput].forEach((input) => {
+      [offsetXInput, offsetYInput, tileWidthInput, tileHeightInput].forEach((input) => {
         input.addEventListener("input", applyInputValues);
       });
 
       fitButton.addEventListener("click", fitMapToViewport);
       resetButton.addEventListener("click", () => {
-        VIEW_STATE.originX = MAP_CONFIG.defaultOriginX;
-        VIEW_STATE.originY = MAP_CONFIG.defaultOriginY;
+        VIEW_STATE.offsetXGrid = MAP_CONFIG.defaultOffsetX;
+        VIEW_STATE.offsetYGrid = MAP_CONFIG.defaultOffsetY;
         VIEW_STATE.tileWidth = MAP_CONFIG.defaultTileWidth;
         VIEW_STATE.tileHeight = MAP_CONFIG.defaultTileHeight;
         syncInputs();
